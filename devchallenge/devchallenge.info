@@ -1,0 +1,9 @@
+; $Id: devchallenge.info,v 1.4 2014/03/12 13:00:00 fnikola Exp $
+name = Developer Challenge
+description = Custom code for Developer Challenge.
+package = Developer Challenge
+core = 6.x
+; Information added by fnikola
+version = "6.x-1.0"
+core = "6.x"
+project = "devchallenge"
