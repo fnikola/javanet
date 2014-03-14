@@ -1,0 +1,101 @@
+<?php
+
+  /**
+   *  @file
+   *  Using drupal_mail to send emails for attendance numbers
+   *  This Mail is sent at every cron run
+   * This Module demonstrates how to:
+   * 1. Use drupal_mail function
+   * 2. Setup hook_mail
+   * 3. Send HTML Mails
+   */
+  /*
+   * Implementation of hook_cron()
+   */
+  function devchallenge_cron()
+  {
+      /*
+       * This function is called everytime cron is ran
+       * In this function we will be calling drupal_mail to send a mail
+       */
+      /*
+       * Drupal mail is the function used to send mail
+       * @parameters
+       * $module - A module name to invoke hook_mail() on. The {$module}_mail() hook will be called to complete the 
+       *            $message structure which will already contain common defaults, in our case, this is samplemail_mail.
+       * $key - A key to identify the e-mail sent. This key will be used in hook_mail to identify which mail call is it.
+       *        In samplemail_mail above, you may notice we have the keys in a switch statement.
+       * drupal_mail($module, $key, $to, $language, $params = array(), $from = NULL, $send = TRUE)
+       */
+
+      $nid = 900990;
+      $question_id = 3;
+      $submission_id = 1209;
+      $max_attendance = 125;
+      
+      $module = 'devchallenge';
+      $key_text = 'devchallenge_normal_mail';
+      $key_html = 'devchallenge_html_mail';
+      $from = 'noreply@java.net';
+      $to_user_mail = 'fnikola@java.net';
+      
+      //$query = 'SELECT data as training, COUNT(data) as attendees FROM {webform_submitted_data} WHERE nid = 900990 AND cid = 3 AND sid > 1209 GROUP BY data ORDER BY count(data) DESC';
+      $query = 'SELECT data as training, COUNT(data) as attendees FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND sid > %d GROUP BY data ORDER BY count(data) DESC';
+      $result = db_query($query, $nid, $question_id, $submission_id);
+      while ($attendance = db_fetch_array($result)) {
+        $body .= $attendance['training'].' - '.$attendance['attendees'];
+      }
+
+      $params = array(
+        'subject' => t('IoT Developer Challenge Training Attendance'),
+        'body' => $body,
+      );
+      /* If you notice, we use different keys for the admin and other users, so in hook_mail, we can adjust the admin emails a bit if needed */
+      drupal_mail("devchallenge", "devchallenge_text_mail", $to_user_mail, language_default(), $params, $from);
+      drupal_mail("devchallenge", "devchallenge_html_mail", $to_user_mail, language_default(), $params, $from);
+  }
+  /*
+   * Implementation of hook_mail()
+   */
+
+  function devchallenge_mail($key, &$message, $params)
+  {
+      /*
+       * This function is used to hook into drupal_mail function to send the mail
+       * Everytime drupal_mail is used, this function is called to setup the mail to be sent
+       */
+      $language = $message['language'];
+      $vars = array();
+      $options = array("language" => $language->language);
+      switch ($key)
+      {
+          /*
+           * Here we will be switching the key values, therefore different mails can be sent differently using different keys. 
+           * As demonstrated above, we have different keys for the admin and other users to send normal mail to admins, and html mails to users
+           */
+          case 'devchallenge_text_mail':
+              /* Emails with this key will be normal emails, so we just set body and subject accordingly */
+              $message['subject'] = t($params['subject'], $var, $language->language); //$vars required even if not used to get $language in there
+              //the email body is here, inside the $message array
+              $message['body'][] = $params['body'];
+              break;
+          case 'devchallenge_html_mail':
+              /*
+               * Emails with this key will be HTML emails, 
+               * we therefore cannot use drupal default headers, but set our own headers
+               */
+              /*
+               * $vars required even if not used to get $language in there since t takes in: 	t($string, $args = array(), $langcode = NULL)
+               */
+              $message['subject'] = t($params['subject'], $var, $language->language);
+              /* the email body is here, inside the $message array */
+              $body = "<html><body>
+                  <h2>IoT Developer Challenge Training Attendance</h2>
+                  <hr /><br /><br />
+                  {$params['body']}
+                  </body></html>";
+              $message['body'][] = $body;
+              $message['headers']['Content-Type'] = 'text/html; charset=UTF-8; format=flowed';
+              break;
+      }
+  }
