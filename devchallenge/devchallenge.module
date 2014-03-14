@@ -43,7 +43,7 @@
       $query = 'SELECT data as training, COUNT(data) as attendees FROM {webform_submitted_data} WHERE nid = %d AND cid = %d AND sid > %d GROUP BY data ORDER BY count(data) DESC';
       $result = db_query($query, $nid, $question_id, $submission_id);
       while ($attendance = db_fetch_array($result)) {
-        $body .= $attendance['training'].' - '.$attendance['attendees'];
+        $body .= $attendance['training'].' - '.$attendance['attendees'].'<br/>';
       }
 
       $params = array(
